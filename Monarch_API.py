@@ -432,6 +432,12 @@ def load_agents(payload: Dict):
     agents = payload
     return {"status": "updated", "agents": agents}
 
+@app.get("/clear-agents")
+def clear_agents():
+    global agents
+    agents.clear()
+    return {"status": "cleared"}
+
 
 for route in app.routes:
     hi = ["/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"]
