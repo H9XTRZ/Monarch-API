@@ -435,7 +435,13 @@ def getAgents():
 @app.post("/load-agents")
 def load_agents(payload: Dict):
     global agents
-    agents = payload
+    for agent in payload:
+        agents.update({agent: {
+        "todaysProfit": 0,
+        "status": "waiting",
+        "currentStock": "null",
+        "tradeHistory": []
+}})
     return {"status": "updated", "agents": agents}
 
 @app.get("/clear-agents")
