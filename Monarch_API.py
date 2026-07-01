@@ -373,7 +373,7 @@ def updateAgentData(Aname: str, TP: float, status: str, currentStock: str):
             else:
                 agents[Aname]["tradeHistory"].append(TP)
                 
-            agents[Aname]["todaysProfit"] = sum(agents[Aname]["tradeHistory"])
+            agents[Aname]["todaysProfit"] = agents[Aname]["tradeHistory"][-1]
         if status:
             agents[Aname]["status"] = status
         if currentStock:
