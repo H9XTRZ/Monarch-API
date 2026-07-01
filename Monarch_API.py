@@ -211,22 +211,37 @@ agent_status = "active"
 def getHomePage():
     global months_profit, OC_status, agents
 
-    trades = []
+    
+    totalPositiveTrades = 0
+    totalTrades = 0
     if agents:
         for a in agents:
+            trades = []
             trades.extend(agents[a]["tradeHistory"])
-        if trades:
-            PositiveTrades = len(trades)
-            for t in trades:
-                if t < 0:
+            if trades:
+                PositiveTrades = len(trades)
+                totalTrades += len(trades)
+                start = 0
+                if trades[0] < 0:
                     PositiveTrades -= 1
-            winRate = (PositiveTrades/len(trades))*100
 
-            return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": len(trades), "Active_Agents": len(agents), "Win_Rate": round(winRate)}
+                for i in range(1,len(trades)):
+                    if trades[start] > trades[i]:
+                        PositiveTrades -= 1
+
+                    start += 1
+                
+                totalPositiveTrades += PositiveTrades
+        if totalTrades:
+            winRate = (totalPositiveTrades/totalTrades)*100
         else:
-            return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": 0, "Active_Agents": len(agents), "Win_Rate": "NA"}
+            winRate = 0.0
+        if winRate:
+            return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": totalTrades, "Active_Agents": len(agents), "Win_Rate": round(winRate)}
+        else:
+            return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": totalTrades, "Active_Agents": len(agents), "Win_Rate": "NA"}
     else:
-        return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": 0, "Active_Agents": 0, "Win_Rate": "NA"}
+        return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": totalTrades, "Active_Agents": 0, "Win_Rate": "NA"}
 
 
 
@@ -446,7 +461,8 @@ def load_agents(payload: Dict):
 
 @app.get("/clear-agents")
 def clear_agents():
-    global agents
+    global agents, months_profit
+    months_profit = 0.0
     agents.clear()
     return {"status": "cleared"}
 
