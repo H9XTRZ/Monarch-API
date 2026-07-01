@@ -366,7 +366,13 @@ def updateAgentData(Aname: str, TP: float, status: str, currentStock: str):
         if TP:
             months_profit += float(TP)
             CDT.append(months_profit)
-            agents[Aname]["tradeHistory"].append(TP)
+            if agents[Aname]["tradeHistory"]:
+                lastP = agents[Aname]["tradeHistory"][-1]
+                newP = lastP + float(TP)
+                agents[Aname]["tradeHistory"].append(newP)
+            else:
+                agents[Aname]["tradeHistory"].append(TP)
+                
             agents[Aname]["todaysProfit"] = sum(agents[Aname]["tradeHistory"])
         if status:
             agents[Aname]["status"] = status
