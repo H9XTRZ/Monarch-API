@@ -109,6 +109,20 @@ CDT = []
 CMT = []
 CYT = []
 
+
+
+agents = {}
+months_profit = 0  #this is where the total month's profit is stored
+
+agents_to_add = {}
+
+
+logs = []
+
+
+
+
+
 def getDate():
     current_date = datetime.now()
 
@@ -142,11 +156,22 @@ def chartOranizer():
     month = current_month
     year = current_year
 
+def clearDayData():
+    global agents, logs
+    # ------------ agent data ------------
+    for agent in agents:
+        agents[agent]["todaysProfit"] = 0
+        agents[agent]["currentStock"] = "null"
+        agents[agent]["tradeHistory"] = []
+    # ------------ logs ------------
+    logs.clear()
+
+
 
 # ---------------------- 12:02 checker ----------------------
-logs = []
+
 def daily_1202_checker():
-    global logs
+
     last_run_date = None
 
     while True:
@@ -157,7 +182,7 @@ def daily_1202_checker():
             # Make sure it only runs once per day
             if last_run_date != now.date():
                 chartOranizer()
-                logs.clear()
+                clearDayData()
                 print("organized chart", flush=True)
                 last_run_date = now.date()
 
@@ -189,16 +214,6 @@ def stfu():
     return "stfu"
 
 
-
-agents = {}
-months_profit = 0  #this is where the total month's profit is stored
-
-agents_to_add = {}
-"""
-looks like:
-
-{"a1": ID, "a2": ID}
-"""
 
 
 OC_status = ""
@@ -235,7 +250,7 @@ def getHomePage():
         if totalTrades:
             winRate = (totalPositiveTrades/totalTrades)*100
         else:
-            winRate = 0.0
+            winRate = "NA"
         if winRate:
             return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": totalTrades, "Active_Agents": len(agents), "Win_Rate": round(winRate)}
         else:
@@ -366,7 +381,6 @@ Should look like
     },
 
 """
-
 
 # ------------- agent data update -------------
 """
