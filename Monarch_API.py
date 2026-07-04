@@ -32,6 +32,9 @@ import os
 import threading
 from datetime import datetime
 import time
+import json
+from pathlib import Path
+import threading
 
 RED     = "\033[91m"
 GREEN   = "\033[92m"
@@ -109,7 +112,8 @@ CDT = []
 CMT = []
 CYT = []
 
-
+hour = 5
+minute = 2
 
 agents = {}
 months_profit = 0  #this is where the total month's profit is stored
@@ -118,9 +122,84 @@ agents_to_add = {}
 
 
 logs = []
+pause_status = False
+E_stop_status = False
+
+
+# ---------------------- JSON state saving ----------------------
+
+DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "./data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+STATE_FILE = DATA_DIR / "monarch_state.json"
+
+state_lock = threading.Lock()
+
+
+def default_state():
+    return {
+        "CDT": [],
+        "CMT": [],
+        "CYT": [],
+        "agents": {},
+        "months_profit": 0.0,
+        "pause_status": False,
+        "E_stop_status": False,
+        "hour": 5,
+        "minute": 2
+    }
+
+
+def save_state():
+    global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
+    global OC_status, pause_status, E_stop_status, hour, minute
+
+    state = {
+        "CDT": CDT,
+        "CMT": CMT,
+        "CYT": CYT,
+        "agents": agents,
+        "months_profit": months_profit,
+        "pause_status": pause_status,
+        "E_stop_status": E_stop_status,
+        "hour": hour,
+        "minute": minute
+    }
+
+    with state_lock:
+        temp_file = STATE_FILE.with_suffix(".tmp")
+
+        with open(temp_file, "w") as f:
+            json.dump(state, f, indent=4)
+
+        temp_file.replace(STATE_FILE)
+
+
+def load_state():
+    global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
+    global OC_status, pause_status, E_stop_status, hour, minute
+
+    if not STATE_FILE.exists():
+        with open(STATE_FILE, "w") as f:
+            json.dump(default_state(), f, indent=4)
+
+    with state_lock:
+        with open(STATE_FILE, "r") as f:
+            state = json.load(f)
+
+    CDT = state.get("CDT", [])
+    CMT = state.get("CMT", [])
+    CYT = state.get("CYT", [])
+    agents = state.get("agents", {})
+    months_profit = state.get("months_profit", 0.0)
+    pause_status = state.get("pause_status", False)
+    E_stop_status = state.get("E_stop_status", False)
+    hour = state.get("hour", 5)
+    minute = state.get("minute", 2)
 
 
 
+load_state()
 
 
 def getDate():
@@ -155,6 +234,7 @@ def chartOranizer():
     day = current_day
     month = current_month
     year = current_year
+    save_state()
 
 def clearDayData():
     global agents, logs
@@ -165,12 +245,12 @@ def clearDayData():
         agents[agent]["tradeHistory"] = []
     # ------------ logs ------------
     logs.clear()
+    save_state()
 
 
 
 # ---------------------- 12:02 checker ----------------------
-hour = 0
-minute = 0
+
 def daily_1202_checker():
     global hour, minute
 
@@ -273,18 +353,19 @@ def getHomePage():
 
 
 
-pause_status = False
-E_stop_status = False
+
 @app.get("/pause")
 def pause_agents():
     global pause_status
     pause_status = True
+    save_state()
     return {"status": "Pausing"}
 
 @app.get("/E-stop")
 def Emergency_stop():
     global E_stop_status
     E_stop_status = True
+    save_state()
     return {"status": "E-stopping"}
 
 @app.get("/resume")
@@ -292,6 +373,7 @@ def resumeAgents():
     global pause_status, E_stop_status
     pause_status = False
     E_stop_status = False
+    save_state()
     return {"status": "Resuming"}
 
 
@@ -420,6 +502,7 @@ def updateAgentData(Aname: str, TP: float, status: str, currentStock: str):
             agents[Aname]["status"] = status
         if currentStock:
             agents[Aname]["currentStock"] = currentStock
+        save_state()
         return {"status": "updated"}
     else:
         return {"Error": "name not in saved Agents"}
@@ -454,6 +537,7 @@ def addedAgent(Aname: str):
         "tradeHistory": []
 }})
         del agents_to_add[Aname]
+        save_state()
         return {"Status": "Recieved"}
     else:
         return {"Error": "agent was not requested"}
@@ -484,6 +568,7 @@ def load_agents(payload: Dict):
         "currentStock": "null",
         "tradeHistory": []
 }})
+    save_state()
     return {"status": "updated", "agents": agents}
 
 @app.get("/clear-agents")
@@ -491,6 +576,7 @@ def clear_agents():
     global agents, months_profit
     months_profit = 0.0
     agents.clear()
+    save_state()
     return {"status": "cleared"}
 
 
