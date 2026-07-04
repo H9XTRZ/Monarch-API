@@ -213,7 +213,9 @@ def root():
 def stfu():
     return "stfu"
 
-
+@app.get("/local-time")
+def get_local_time():
+    return {"time": datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}
 
 
 OC_status = ""
@@ -250,7 +252,7 @@ def getHomePage():
         if totalTrades:
             winRate = (totalPositiveTrades/totalTrades)*100
         else:
-            winRate = "NA"
+            winRate = 0.0
         if winRate:
             return {"Total_Profit": months_profit, "Status": OC_status, "Trades_Today": totalTrades, "Active_Agents": len(agents), "Win_Rate": round(winRate)}
         else:
