@@ -35,6 +35,10 @@ import time
 import json
 from pathlib import Path
 import threading
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import pandas as pd
+import pandas_market_calendars as mcal
 
 RED     = "\033[91m"
 GREEN   = "\033[92m"
@@ -124,6 +128,8 @@ agents_to_add = {}
 logs = []
 pause_status = False
 E_stop_status = False
+
+agents_to_delete = []
 
 
 # ---------------------- JSON state saving ----------------------
@@ -252,7 +258,7 @@ def clearDayData():
 # ---------------------- 12:02 checker ----------------------
 
 def daily_1202_checker():
-    global hour, minute
+    global hour, minute, agents_to_delete, agents
 
     last_run_date = None
 
@@ -271,6 +277,12 @@ def daily_1202_checker():
         # Check every second
         time.sleep(1)
 
+        if agents_to_delete and not is_us_stock_market_open():
+            for agent in agents_to_delete.copy():
+                del agents[agent]
+                agents_to_delete.remove(agent)
+            save_state()
+
 
 
 worker = threading.Thread(target=daily_1202_checker, daemon=True)
@@ -283,6 +295,38 @@ print("worker thread started")
 
 
 # ---------------------- 12:02 checker ----------------------
+
+def is_us_stock_market_open(now: datetime | None = None) -> bool:
+    # True = OPEN | False = CLOSED
+    nyse = mcal.get_calendar("NYSE")
+
+    if now is None:
+        now = datetime.now(ZoneInfo("America/New_York"))
+    elif now.tzinfo is None:
+        raise ValueError("Pass a timezone-aware datetime, or leave now as None.")
+
+    # Convert to UTC because pandas_market_calendars schedules are UTC-based.
+    now_utc = pd.Timestamp(now).tz_convert("UTC")
+
+    # Pull a small window around today so early closes/holidays are included.
+    start_date = (now_utc - pd.Timedelta(days=7)).date()
+    end_date = (now_utc + pd.Timedelta(days=7)).date()
+
+    schedule = nyse.schedule(start_date=start_date, end_date=end_date)
+
+    if schedule.empty:
+        return False
+
+    try:
+        return bool(nyse.open_at_time(schedule, now_utc, only_rth=True))
+    except ValueError:
+        return False
+
+
+
+
+
+
 
 
 
@@ -298,6 +342,7 @@ def stfu():
 @app.get("/local-time")
 def get_local_time():
     return {"time": datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}
+    
 
 @app.get("/set-reset-time")
 def setResetTime(h: int, m: int):
@@ -437,8 +482,12 @@ def getChartPage(time: str):
 # from app
 @app.get("/add-agent")
 def addAgent(ID: str, Aname: str):
-    agents_to_add.update({Aname: ID})
-    return {"Status": "Adding"}
+    global agents
+    if Aname not in agents:
+        agents_to_add.update({Aname: ID})
+        return {"Status": "Adding"}
+    else:
+        return {"status": "Agent already exists"}
 
 # app pings this until the agent is launched
 @app.get("/get-adding-status")
@@ -510,6 +559,20 @@ def updateAgentData(Aname: str, TP: float, status: str, currentStock: str):
 
 
 
+@app.get("/remove-agent")
+def removeAgent(Aname: str):
+    global agents
+
+    if Aname in agents:
+        if not is_us_stock_market_open():
+            del agents[Aname]
+            save_state()
+            return {"status": "agent deleted"}
+        else:
+            agents_to_delete.append(Aname)
+            return {"status": "agent scheduled for deletion"}
+    else:
+        return {"status": f"{Aname} does not exist"}
 
 
 
