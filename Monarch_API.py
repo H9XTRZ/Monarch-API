@@ -352,6 +352,12 @@ def setResetTime(h: int, m: int):
     save_state()
     return {"status": "updated"}
 
+@app.get("/clear-mprofit")
+def clearMprofit():
+    global months_profit
+    months_profit = 0
+    return {"status": "cleared"}
+
 
 
 
@@ -564,7 +570,7 @@ def removeAgent(Aname: str):
     global agents
 
     if Aname in agents:
-        if is_us_stock_market_open():
+        if not is_us_stock_market_open():
             del agents[Aname]
             save_state()
             return {"status": "agent deleted"}
@@ -643,11 +649,17 @@ def clear_agents():
     save_state()
     return {"status": "cleared"}
 
-
+endpoints = []
 for route in app.routes:
     hi = ["/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"]
     if route.path not in hi:
         print("http://127.0.0.1:8000"+route.path)
+        endpoints.append(route.path)
+
+@app.get("/endpoints")
+def getendpoints():
+    global endpoints
+    return {"endpoints": endpoints}
 
 # Deploy code:
 if __name__ == "__main__":
