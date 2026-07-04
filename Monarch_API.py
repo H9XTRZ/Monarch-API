@@ -564,7 +564,7 @@ def removeAgent(Aname: str):
     global agents
 
     if Aname in agents:
-        if not is_us_stock_market_open():
+        if is_us_stock_market_open():
             del agents[Aname]
             save_state()
             return {"status": "agent deleted"}
