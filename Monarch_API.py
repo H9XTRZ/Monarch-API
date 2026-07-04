@@ -169,8 +169,10 @@ def clearDayData():
 
 
 # ---------------------- 12:02 checker ----------------------
-
+hour = 0
+minute = 0
 def daily_1202_checker():
+    global hour, minute
 
     last_run_date = None
 
@@ -178,7 +180,7 @@ def daily_1202_checker():
         now = datetime.now()
 
         # Check for exactly 12:02 AM
-        if now.hour == 0 and now.minute == 2:
+        if now.hour == hour and now.minute == minute:
             # Make sure it only runs once per day
             if last_run_date != now.date():
                 chartOranizer()
@@ -216,6 +218,15 @@ def stfu():
 @app.get("/local-time")
 def get_local_time():
     return {"time": datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}
+
+@app.get("/set-reset-time")
+def setResetTime(h: int, m: int):
+    global hour, minute
+    hour = h
+    minute = m
+    return {"status": "updated"}
+
+
 
 
 OC_status = ""
