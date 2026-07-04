@@ -304,6 +304,7 @@ def setResetTime(h: int, m: int):
     global hour, minute
     hour = h
     minute = m
+    save_state()
     return {"status": "updated"}
 
 
