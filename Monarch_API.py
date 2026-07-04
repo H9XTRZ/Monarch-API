@@ -335,9 +335,7 @@ def is_us_stock_market_open(now: datetime | None = None) -> bool:
 def root():
     return {"status": "ok"}
 
-@app.get("/-------------END-POINTS---------------") # Litterly just a seprator for printing endpoints
-def stfu():
-    return "stfu"
+
 
 @app.get("/local-time")
 def get_local_time():
@@ -597,14 +595,15 @@ def ping(status: str):
 
 # OC comes here when it has launched a new agent
 @app.get("/added_agent")
-def addedAgent(Aname: str):
+def addedAgent(Aname: str, ID: str):
     global agents_to_add, agents_format, agents
     if Aname in agents_to_add:
         agents.update({Aname: {
         "todaysProfit": 0,
         "status": "waiting",
         "currentStock": "null",
-        "tradeHistory": []
+        "tradeHistory": [],
+        "ID": ID
 }})
         del agents_to_add[Aname]
         save_state()
@@ -613,14 +612,15 @@ def addedAgent(Aname: str):
         return {"Error": "agent was not requested"}
     
 
-"""
-the oc will come here to save the agents data at the end
-of the day to ensure that the data is save incase the API gets rebooted
-"""
-@app.get("/get-agents")
+# for Orchestrator
+@app.get("/refresh-agents")
 def getAgents():
+    formated = {}
     global agents
-    return agents
+    for agent in agents:
+        formated.update({agent: agents[agent]['ID']})
+    
+    return formated
 
 
 # ------------- orchestrator ping -------------
@@ -636,7 +636,8 @@ def load_agents(payload: Dict):
         "todaysProfit": 0,
         "status": "waiting",
         "currentStock": "null",
-        "tradeHistory": []
+        "tradeHistory": [],
+        "ID": ""
 }})
     save_state()
     return {"status": "updated", "agents": agents}
