@@ -577,9 +577,27 @@ def removeAgent(Aname: str):
             return {"status": "agent scheduled for deletion"}
     else:
         return {"status": f"{Aname} does not exist"}
+reallocated = []
 
-
-
+@app.get("/request-reallocation")
+def request_reallocation():
+    global reallocated, agents
+    if len(agents) >= 5:
+        best = {"profit": 0, "agent": "", "sym": ""}
+        for agent in agents:
+            if agent not in reallocated:
+                profit = agents[agent]["todaysProfit"]
+                if profit > best["profit"]:
+                    best["profit"] = profit
+                    best["agent"] = agent
+                    best["sym"] = agents[agent]["currentStock"]
+        reallocated.append(best["agent"])
+        if best["sym"]:
+            return {"reallocation": best["sym"]}
+        else:
+            return {"reallocation": False}
+    else:
+        return {"reallocation": False}
 
 
 # ------------- orchestrator ping -------------
@@ -596,7 +614,7 @@ def ping(status: str):
 # OC comes here when it has launched a new agent
 @app.get("/added_agent")
 def addedAgent(Aname: str, ID: str):
-    global agents_to_add, agents_format, agents
+    global agents_to_add, agents
     if Aname in agents_to_add:
         agents.update({Aname: {
         "todaysProfit": 0,
