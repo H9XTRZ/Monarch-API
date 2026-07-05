@@ -459,35 +459,41 @@ def getChartPage(time: str):
     if time == "day":
         if CDT:
             data = {
-                "totalProfit": sum(CDT),
+                "totalProfit": CDT[-1],
                 "plotPoints": CDT
             }
             return {"data": data}
         else:
-            return {"data": "not enough data yet"}
+            return {"data": "NA"}
     if time == "month":
         if CMT:
             data = {
-                "totalProfit": sum(CMT),
+                "totalProfit": CDT[-1],
                 "plotPoints": CMT
             }
             return {"data": data}
         else:
-            return {"data": "not enough data yet"}
+            return {"data": "NA"}
     if time == "year":
         if CYT:
             data = {
-                "totalProfit": sum(CYT),
+                "totalProfit": CDT[-1],
                 "plotPoints": CYT
             }
             return {"data": data}
         else:
-            return {"data": "not enough data yet"}
+            return {"data": "NA"}
     
     return {"Error": "invalid time"}
 
 
-
+@app.get("/clear-chart-data")
+def clearChartData():
+    global CDT, CMT, CYT
+    CDT.clear()
+    CMT.clear()
+    CYT.clear()
+    return {"status": "cleared"}
 
 # ------------- agents page -------------
 # from app
