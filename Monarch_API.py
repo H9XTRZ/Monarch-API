@@ -493,6 +493,7 @@ def clearChartData():
     CDT.clear()
     CMT.clear()
     CYT.clear()
+    save_state()
     return {"status": "cleared"}
 
 # ------------- agents page -------------
