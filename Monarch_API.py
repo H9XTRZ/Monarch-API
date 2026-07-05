@@ -232,11 +232,11 @@ def chartOranizer():
     current_day, current_month, current_year = getDate()
     if day != current_day:
         if CDT:
-            CMT.append(sum(CDT))
+            CMT.append(CDT[-1])
             CDT.clear()
     if month != current_month:
         if CMT:
-            CYT.append(sum(CMT))
+            CYT.append(CMT[-1])
             CMT.clear()
     if year != current_year:
         CYT.clear()
