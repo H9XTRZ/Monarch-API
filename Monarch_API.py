@@ -118,6 +118,7 @@ CYT = []
 
 hour = 5
 minute = 2
+timeZone = "America/Chicago"
 
 agents = {}
 months_profit = 0  #this is where the total month's profit is stored
@@ -152,13 +153,14 @@ def default_state():
         "pause_status": False,
         "E_stop_status": False,
         "hour": 5,
-        "minute": 2
+        "minute": 2,
+        "timeZone": "America/Chicago"
     }
 
 
 def save_state():
     global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
-    global OC_status, pause_status, E_stop_status, hour, minute
+    global OC_status, pause_status, E_stop_status, hour, minute, timeZone
 
     state = {
         "CDT": CDT,
@@ -169,7 +171,8 @@ def save_state():
         "pause_status": pause_status,
         "E_stop_status": E_stop_status,
         "hour": hour,
-        "minute": minute
+        "minute": minute,
+        "timeZone": timeZone
     }
 
     with state_lock:
@@ -183,7 +186,7 @@ def save_state():
 
 def load_state():
     global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
-    global OC_status, pause_status, E_stop_status, hour, minute
+    global OC_status, pause_status, E_stop_status, hour, minute, timeZone
 
     if not STATE_FILE.exists():
         with open(STATE_FILE, "w") as f:
@@ -202,6 +205,7 @@ def load_state():
     E_stop_status = state.get("E_stop_status", False)
     hour = state.get("hour", 5)
     minute = state.get("minute", 2)
+    timeZone = state.get("timeZone", "America/Chicago")
 
 
 
@@ -258,30 +262,32 @@ def clearDayData():
 # ---------------------- 12:02 checker ----------------------
 
 def daily_1202_checker():
-    global hour, minute, agents_to_delete, agents
+    global hour, minute, agents_to_delete, agents, timeZone
 
     last_run_date = None
 
     while True:
-        now = datetime.now()
+        # Use the selected timezone
+        now = datetime.now(ZoneInfo(timeZone))
 
-        # Check for exactly 12:02 AM
+        # Run once per day at the specified hour/minute in that timezone
         if now.hour == hour and now.minute == minute:
-            # Make sure it only runs once per day
             if last_run_date != now.date():
                 chartOranizer()
                 clearDayData()
                 print("organized chart", flush=True)
                 last_run_date = now.date()
 
-        # Check every second
-        time.sleep(1)
-
+        # Delete agents when stock market is closed
         if agents_to_delete and not is_us_stock_market_open():
             for agent in agents_to_delete.copy():
-                del agents[agent]
+                if agent in agents:
+                    del agents[agent]
                 agents_to_delete.remove(agent)
+
             save_state()
+
+        time.sleep(1)
 
 
 
@@ -343,10 +349,11 @@ def get_local_time():
     
 
 @app.get("/set-reset-time")
-def setResetTime(h: int, m: int):
-    global hour, minute
+def setResetTime(h: int, m: int, tz: str):
+    global hour, minute, timeZone
     hour = h
     minute = m
+    timeZone = tz
     save_state()
     return {"status": "updated"}
 
