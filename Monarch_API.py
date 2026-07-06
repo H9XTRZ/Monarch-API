@@ -200,7 +200,7 @@ def load_state():
     CMT = state.get("CMT", [])
     CYT = state.get("CYT", [])
     agents = state.get("agents", {})
-    months_profit = state.get("months_profit", 0.0)
+    months_profit = state.get("months_profit", 0)
     pause_status = state.get("pause_status", False)
     E_stop_status = state.get("E_stop_status", False)
     hour = state.get("hour", 5)
@@ -228,7 +228,7 @@ year = 0
 day, month, year = getDate()
 
 def chartOranizer():
-    global day, month, year, CDT, CMT, CYT
+    global day, month, year, CDT, CMT, CYT, months_profit
     current_day, current_month, current_year = getDate()
     if day != current_day:
         if CDT:
@@ -238,6 +238,7 @@ def chartOranizer():
         if CMT:
             CYT.append(CMT[-1])
             CMT.clear()
+        months_profit = 0
     if year != current_year:
         CYT.clear()
     
@@ -677,7 +678,6 @@ def load_agents(payload: Dict):
 @app.get("/clear-agents")
 def clear_agents():
     global agents, months_profit
-    months_profit = 0.0
     agents.clear()
     save_state()
     return {"status": "cleared"}
