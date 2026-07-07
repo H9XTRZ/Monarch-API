@@ -113,8 +113,8 @@ app = FastAPI()
 
 # Current day/month/year Trades
 CDT = []
-CMT = []
-CYT = []
+CMT = [0]
+CYT = [0]
 
 hour = 5
 minute = 2
