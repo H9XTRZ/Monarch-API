@@ -146,8 +146,8 @@ state_lock = threading.Lock()
 def default_state():
     return {
         "CDT": [],
-        "CMT": [],
-        "CYT": [],
+        "CMT": [0],
+        "CYT": [0],
         "agents": {},
         "months_profit": 0.0,
         "pause_status": False,
@@ -208,7 +208,7 @@ def load_state():
     timeZone = state.get("timeZone", "America/Chicago")
 
 
-
+save_state()
 load_state()
 
 
