@@ -116,7 +116,7 @@ CDT = []
 CMT = [0]
 CYT = [0]
 
-hour = 5
+hour = 0
 minute = 2
 timeZone = "America/Chicago"
 
@@ -146,8 +146,8 @@ state_lock = threading.Lock()
 def default_state():
     return {
         "CDT": [],
-        "CMT": [0],
-        "CYT": [0],
+        "CMT": [],
+        "CYT": [],
         "agents": {},
         "months_profit": 0.0,
         "pause_status": False,
@@ -164,10 +164,10 @@ def save_state():
 
     state = {
         "CDT": CDT,
-        "CMT": CMT,
+        "CMT": [219.0],
         "CYT": CYT,
         "agents": agents,
-        "months_profit": months_profit,
+        "months_profit": 219,
         "pause_status": pause_status,
         "E_stop_status": E_stop_status,
         "hour": hour,
