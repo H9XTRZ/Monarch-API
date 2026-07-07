@@ -113,10 +113,10 @@ app = FastAPI()
 
 # Current day/month/year Trades
 CDT = []
-CMT = [0]
-CYT = [0]
+CMT = []
+CYT = []
 
-hour = 0
+hour = 5
 minute = 2
 timeZone = "America/Chicago"
 
@@ -164,10 +164,10 @@ def save_state():
 
     state = {
         "CDT": CDT,
-        "CMT": [219.0],
+        "CMT": CMT,
         "CYT": CYT,
         "agents": agents,
-        "months_profit": 219,
+        "months_profit": months_profit,
         "pause_status": pause_status,
         "E_stop_status": E_stop_status,
         "hour": hour,
@@ -208,7 +208,7 @@ def load_state():
     timeZone = state.get("timeZone", "America/Chicago")
 
 
-save_state()
+
 load_state()
 
 
