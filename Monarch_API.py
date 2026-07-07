@@ -469,7 +469,7 @@ def getChartPage(time: str):
     if time == "month":
         if CMT:
             data = {
-                "totalProfit": CDT[-1],
+                "totalProfit": CMT[-1],
                 "plotPoints": CMT
             }
             return {"data": data}
@@ -478,7 +478,7 @@ def getChartPage(time: str):
     if time == "year":
         if CYT:
             data = {
-                "totalProfit": CDT[-1],
+                "totalProfit": CYT[-1],
                 "plotPoints": CYT
             }
             return {"data": data}
