@@ -25,7 +25,7 @@
 
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 import uvicorn
 from typing import Dict
 import os
@@ -39,6 +39,8 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
 import pandas_market_calendars as mcal
+import shutil
+from fastapi.responses import FileResponse
 
 RED     = "\033[91m"
 GREEN   = "\033[92m"
@@ -109,7 +111,7 @@ def print_c(text, color):
 
 
 app = FastAPI()
-
+authKey = "2075f8b2aac25ef2dfbbcc998dc81d36f953f0ef4320872847ae3775f69f0472"
 
 # Current day/month/year Trades
 CDT = []
@@ -141,6 +143,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = DATA_DIR / "monarch_state.json"
 
 state_lock = threading.Lock()
+Version = "V1"
 
 
 def default_state():
@@ -154,13 +157,14 @@ def default_state():
         "E_stop_status": False,
         "hour": 5,
         "minute": 2,
-        "timeZone": "America/Chicago"
+        "timeZone": "America/Chicago",
+        "currentVersion": Version
     }
 
 
 def save_state():
     global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
-    global OC_status, pause_status, E_stop_status, hour, minute, timeZone
+    global OC_status, pause_status, E_stop_status, hour, minute, timeZone, Version
 
     state = {
         "CDT": CDT,
@@ -172,7 +176,8 @@ def save_state():
         "E_stop_status": E_stop_status,
         "hour": hour,
         "minute": minute,
-        "timeZone": timeZone
+        "timeZone": timeZone,
+        "currentVersion": Version
     }
 
     with state_lock:
@@ -186,7 +191,7 @@ def save_state():
 
 def load_state():
     global CDT, CMT, CYT, agents, months_profit, agents_to_add, logs
-    global OC_status, pause_status, E_stop_status, hour, minute, timeZone
+    global OC_status, pause_status, E_stop_status, hour, minute, timeZone, Version
 
     if not STATE_FILE.exists():
         with open(STATE_FILE, "w") as f:
@@ -206,6 +211,7 @@ def load_state():
     hour = state.get("hour", 5)
     minute = state.get("minute", 2)
     timeZone = state.get("timeZone", "America/Chicago")
+    Version = state.get("currentVersion", "V1")
 
 
 
@@ -370,6 +376,63 @@ def clearMprofit():
 OC_status = ""
 agent_status = "active"
 
+# ------------- auto updates -------------
+
+UPLOAD_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "./data"))
+UPLOAD_DIR = DATA_DIR / "Versions"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.post("/upload-script")
+async def upload_script(key: str, v: str, file: UploadFile = File(...)):
+    global Version
+    Version = v
+    if key == authKey:
+        safe_filename = Path(file.filename or "").name
+        if not safe_filename:
+            raise HTTPException(status_code=400, detail="Missing filename")
+
+        if not safe_filename.lower().endswith(".py"):
+            raise HTTPException(
+                status_code=400,
+                detail="Only Python files are allowed",
+            )
+
+        destination = UPLOAD_DIR / safe_filename
+
+        with destination.open("wb") as output_file:
+            shutil.copyfileobj(file.file, output_file)
+
+        await file.close()
+        
+        return {
+            "message": "Script uploaded successfully",
+            "filename": safe_filename,
+        }
+    else:
+        return {"status": "auth Failed"} 
+
+@app.get("/download-script")
+def download_script(filename: str, key: str):
+    if key == authKey:
+        safe_filename = Path(filename).name
+        file_path = UPLOAD_DIR / safe_filename
+
+        if not file_path.is_file():
+            raise HTTPException(status_code=404, detail="Script not found")
+
+        return FileResponse(
+            path=file_path,
+            filename=safe_filename,
+            media_type="text/x-python",
+        )
+    else:
+        return {"status": "auth Failed"}
+
+@app.get("/save-state")
+def save_curretn_state():
+    save_state()
+    return {"status": "saved"}
 
 
 # ------------- home page -------------
