@@ -462,6 +462,11 @@ def save_curretn_state():
     return {"status": "saved"}
 
 
+@app.get("/get-version")
+def get_version():
+    global Version
+    return {"Version": Version}
+
 # ------------- home page -------------
 @app.get("/get-home-page")
 def getHomePage():
