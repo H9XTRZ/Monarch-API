@@ -384,48 +384,75 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @app.post("/upload-script")
-async def upload_script(key: str, v: str, file: UploadFile = File(...)):
+async def upload_script(
+    key: str,
+    v: str,
+    Orchestrator: UploadFile | None = File(default=None),
+    Monarch: UploadFile | None = File(default=None),
+):
     global Version
     Version = v
     if key == authKey:
-        safe_filename = Path(file.filename or "").name
-        if not safe_filename:
-            raise HTTPException(status_code=400, detail="Missing filename")
+        uploaded_files = {
+            "Orchestrator": Orchestrator,
+            "Monarch": Monarch,
+        }
+        saved_files = []
 
-        if not safe_filename.lower().endswith(".py"):
+        if not any(uploaded_files.values()):
             raise HTTPException(
                 status_code=400,
-                detail="Only Python files are allowed",
+                detail="Provide at least one file using form fields 'Orchestrator' or 'Monarch'",
             )
 
-        destination = UPLOAD_DIR / safe_filename
+        for script_name, uploaded_file in uploaded_files.items():
+            if uploaded_file is None:
+                continue
 
-        with destination.open("wb") as output_file:
-            shutil.copyfileobj(file.file, output_file)
+            incoming_name = Path(uploaded_file.filename or "").name
+            if not incoming_name:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing filename for {script_name}",
+                )
 
-        await file.close()
-        
+            if not incoming_name.lower().endswith(".py"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{script_name} must be a Python file",
+                )
+
+            destination = UPLOAD_DIR / f"{script_name}.py"
+            with destination.open("wb") as output_file:
+                shutil.copyfileobj(uploaded_file.file, output_file)
+
+            await uploaded_file.close()
+            saved_files.append(script_name)
+
         return {
-            "message": "Script uploaded successfully",
-            "filename": safe_filename,
+            "message": "Script upload completed",
+            "version": Version,
+            "saved_scripts": saved_files,
         }
     else:
         return {"status": "auth Failed"} 
 
 @app.get("/download-script")
-def download_script(filename: str, key: str):
+def download_script(key: str):
     if key == authKey:
-        safe_filename = Path(filename).name
-        file_path = UPLOAD_DIR / safe_filename
+        scripts = {}
 
-        if not file_path.is_file():
-            raise HTTPException(status_code=404, detail="Script not found")
+        for script_name in ("Orchestrator", "Monarch"):
+            file_path = UPLOAD_DIR / f"{script_name}.py"
+            if file_path.is_file():
+                scripts[script_name] = file_path.read_text(encoding="utf-8")
+            else:
+                scripts[script_name] = None
 
-        return FileResponse(
-            path=file_path,
-            filename=safe_filename,
-            media_type="text/x-python",
-        )
+        return {
+            "version": Version,
+            "scripts": scripts,
+        }
     else:
         return {"status": "auth Failed"}
 
